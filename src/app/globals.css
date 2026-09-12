@@ -1,26 +1,104 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@theme {
+  --color-void: #04070d;
+  --color-surface-900: #0a0e15;
+  --color-surface-800: #181c23;
+  --color-surface-700: #1c2027;
+  --color-surface-600: #262a31;
+
+  --color-ice: #dfe2ec;
+  --color-ice-dim: #bcc9c7;
+  --color-slate: #8fa0b8;
+
+  --color-cyan: #6fe5da;
+  --color-cyan-bright: #a2fff5;
+  --color-cobalt: #5b8bf7;
+
+  --color-danger: #ffb4ab;
+  --color-danger-bg: #93000a;
+
+  --color-hairline: rgba(255, 255, 255, 0.08);
+  --color-hairline-strong: rgba(255, 255, 255, 0.2);
+  --color-hairline-cyan: rgba(111, 229, 218, 0.35);
+
+  --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+  --font-mono-data: var(--font-grotesk), ui-monospace, monospace;
+
+  --radius-panel: 1rem;
+  --radius-pill: 9999px;
+
+  --ease-celestial: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-exit: cubic-bezier(0.4, 0, 1, 1);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    background-color: var(--color-void);
+    color-scheme: dark;
+  }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  body {
+    min-height: 100dvh;
+    background-color: var(--color-surface-900);
+    color: var(--color-ice);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  ::selection {
+    background-color: rgba(111, 229, 218, 0.24);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-cyan);
+    outline-offset: 2px;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@utility glass-l3 {
+  background-color: rgba(8, 12, 18, 0.78);
+  backdrop-filter: blur(28px);
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.06);
+}
+
+@utility glass-l1 {
+  background-color: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(16px);
+}
+
+@utility panel-l2 {
+  background-color: rgba(255, 255, 255, 0.04);
+}
+
+@utility glow-soft {
+  box-shadow: 0 0 24px rgba(111, 229, 218, 0.35);
+}
+
+@utility mono-num {
+  font-family: var(--font-mono-data);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.15em;
+}
+
+@utility eyebrow {
+  font-family: var(--font-mono-data);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
