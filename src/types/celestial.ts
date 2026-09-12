@@ -6,135 +6,268 @@ export const CELESTIAL_TYPES = [
   "star",
 ] as const;
 
+export const GATEWAY_TYPES = [...CELESTIAL_TYPES, "iss"] as const;
+
 export type CelestialType = (typeof CELESTIAL_TYPES)[number];
+export type GatewayType = (typeof GATEWAY_TYPES)[number];
 
-export const GATEWAY_TYPE_ALIASES = {
-  iss: "satellite",
-} as const satisfies Record<string, CelestialType>;
+function literalGuard<T extends string>(values: readonly T[]) {
+  const allowed = new Set<string>(values);
 
-export function isCelestialType(value: unknown): value is CelestialType {
-  return (
-    typeof value === "string" &&
-    (CELESTIAL_TYPES as readonly string[]).includes(value)
-  );
+  return (value: unknown): value is T =>
+    typeof value === "string" && allowed.has(value);
 }
 
-export function normalizeGatewayType(value: string): CelestialType | null {
-  if (isCelestialType(value)) return value;
+export const isCelestialType = literalGuard(CELESTIAL_TYPES);
+export const isGatewayType = literalGuard(GATEWAY_TYPES);
 
-  const aliased =
-    GATEWAY_TYPE_ALIASES[value as keyof typeof GATEWAY_TYPE_ALIASES];
+export function toGatewayType(value: unknown): GatewayType | null {
+  const key = typeof value === "string" ? value.trim().toLowerCase() : "";
 
-  return aliased ?? null;
+  return isGatewayType(key) ? key : null;
+}
+
+export function toCelestialType(value: unknown): CelestialType | null {
+  const gateway = toGatewayType(value);
+
+  if (gateway === null) return null;
+
+  return gateway === "iss" ? "satellite" : gateway;
 }
 
 export type FeedStatus = "loading" | "live" | "stale" | "offline";
 
 export type DataOrigin = "live" | "sim" | "mock";
 
-export interface Feed<T> {
-  readonly data: T | null;
-  readonly status: FeedStatus;
-  readonly origin: DataOrigin;
-  readonly updatedAtMs: number | null;
-  readonly error: Error | null;
-  readonly refresh: () => Promise<void>;
-}
+export type Feed<T> = {
+  data: T | null;
+  status: FeedStatus;
+  origin: DataOrigin;
+  updatedAtMs: number | null;
+  error: string | null;
+  refresh: () => void;
+};
 
-export interface CelestialPosition {
-  readonly name: string;
-  readonly type: CelestialType;
-  readonly azimuth: number;
-  readonly altitude: number;
-  readonly distanceKm: number | null;
-  readonly distanceAu: number | null;
-  readonly azimuthRate: number | null;
-  readonly altitudeRate: number | null;
-  readonly angularRate: number | null;
-  readonly isVisible: boolean;
-  readonly illuminated: boolean | null;
-  readonly servoAzimuth: number | null;
-  readonly servoAltitude: number | null;
-  readonly timestamp: string;
-  readonly timestampMs: number;
-  readonly origin: DataOrigin;
-}
+export type ServerEnvelope<T> = {
+  data: T;
+  timestamp: string;
+  success: boolean;
+};
 
-export interface PassInfo {
-  readonly name: string;
-  readonly nextAos: string | null;
-  readonly nextLos: string | null;
-  readonly durationSeconds: number | null;
-  readonly maxAltitude: number | null;
-  readonly aosAzimuth: number | null;
-  readonly losAzimuth: number | null;
-}
+export type ApiErrorBody = {
+  statusCode: number;
+  message: string[];
+  error: string;
+  timestamp: string;
+  path: string;
+};
 
-export interface SatelliteEntry {
-  readonly name: string;
-  readonly noradId: number;
-  readonly endpoint: string;
-}
+export type ServoSpeed = "slow" | "normal" | "fast";
+export type ServoSource = "auto" | "manual";
+export type LoraDirection = "inbound" | "outbound";
+export type CaptureReason = "auto" | "manual";
 
-export interface ObjectsCatalog {
-  readonly planets: readonly string[];
-  readonly stars: readonly string[];
-  readonly satellites: readonly SatelliteEntry[];
-}
+export const SKY_PHASES = ["day", "twilight", "night"] as const;
 
-export interface HardwareStatus {
-  readonly batteryPercent: number;
-  readonly voltage: number;
-  readonly solarVoltage: number | null;
-  readonly temperature: number | null;
-  readonly humidity: number | null;
-  readonly servoAzAngle: number;
-  readonly servoAltAngle: number;
-  readonly wifiRssi: number | null;
-  readonly uptimeSeconds: number;
-  readonly loraEnabled: boolean;
-  readonly cameraReady: boolean;
-  readonly lastSeen: string;
-  readonly lastSeenMs: number;
-  readonly isOnline: boolean;
-}
+export type SkyPhase = (typeof SKY_PHASES)[number];
 
-export interface CaptureItem {
-  readonly id: number;
-  readonly filename: string;
-  readonly objectName: string | null;
-  readonly azimuth: number | null;
-  readonly altitude: number | null;
-  readonly triggerReason: "auto" | "manual";
-  readonly timestamp: string;
-  readonly timestampMs: number;
-  readonly imageUrl: string;
-}
+export type CelestialPosition = {
+  name: string;
+  type: CelestialType;
+  azimuth: number;
+  altitude: number;
+  distanceKm: number | null;
+  distanceAu: number | null;
+  azimuthRate: number | null;
+  altitudeRate: number | null;
+  angularRate: number | null;
+  isVisible: boolean;
+  illuminated: boolean | null;
+  servoAzimuth: number | null;
+  servoAltitude: number | null;
+  timestamp: string;
+  timestampMs: number;
+  origin: DataOrigin;
+};
 
-export interface CaptureHistory {
-  readonly items: readonly CaptureItem[];
-  readonly total: number;
-  readonly page: number;
-  readonly limit: number;
-}
+export type PassInfo = {
+  name: string;
+  nextAos: string | null;
+  nextLos: string | null;
+  durationSeconds: number | null;
+  maxAltitude: number | null;
+  aosAzimuth: number | null;
+  losAzimuth: number | null;
+};
 
-export interface TrackTarget {
-  readonly type: CelestialType;
-  readonly id: string;
-}
+export type SatelliteEntry = {
+  name: string;
+  noradId: number;
+  endpoint: string;
+};
 
-export interface SkySnapshot {
-  readonly id: string;
-  readonly kind: CelestialType;
-  readonly az: number;
-  readonly alt: number;
-  readonly azRate: number | null;
-  readonly altRate: number | null;
-  readonly distanceKm: number | null;
-  readonly visible: boolean;
-  readonly ts: number;
-}
+export type ObjectsCatalog = {
+  planets: readonly string[];
+  stars: readonly string[];
+  satellites: readonly SatelliteEntry[];
+};
+
+export type HardwareStatus = {
+  batteryPercent: number;
+  voltage: number;
+  solarVoltage: number | null;
+  temperature: number | null;
+  humidity: number | null;
+  servoAzAngle: number;
+  servoAltAngle: number;
+  wifiRssi: number | null;
+  uptimeSeconds: number;
+  loraEnabled: boolean;
+  cameraReady: boolean;
+  lastSeen: string;
+  lastSeenMs: number;
+  isOnline: boolean;
+};
+
+export type CaptureItem = {
+  id: number;
+  filename: string;
+  objectName: string | null;
+  azimuth: number | null;
+  altitude: number | null;
+  triggerReason: CaptureReason;
+  timestamp: string;
+  timestampMs: number;
+  imageUrl: string;
+};
+
+export type CaptureHistory = {
+  items: readonly CaptureItem[];
+  total: number;
+  page: number;
+  limit: number;
+};
+
+export type TrackTarget = {
+  type: GatewayType;
+  id: string;
+};
+
+export type AuthSession = {
+  accessToken: string;
+  expiresAtMs: number | null;
+};
+
+export type SkySnapshot = {
+  id: string;
+  kind: CelestialType;
+  az: number;
+  alt: number;
+  azRate: number | null;
+  altRate: number | null;
+  distanceKm: number | null;
+  visible: boolean;
+  ts: number;
+};
 
 
-export const SKY = ["day", "night", "twilight"] as const;
-export type SkyPhase = (typeof SKY)[number];
+export type CelestialUpdatePayload = {
+  name: string;
+  type: CelestialType;
+  azimuth: number;
+  altitude: number;
+  distanceKm: number | null;
+  distanceAu: number | null;
+  azimuthRate: number | null;
+  altitudeRate: number | null;
+  nextAos: string | null;
+  nextLos: string | null;
+  passDuration: number | null;
+  maxAltitude: number | null;
+  aosAzimuth: number | null;
+  losAzimuth: number | null;
+  isVisible: boolean;
+  illuminated: boolean | null;
+  servoAzimuth: number;
+  servoAltitude: number;
+  timestamp: string;
+};
+
+export type PassAlertPayload = {
+  objectName: string;
+  nextAos: string | null;
+  nextLos: string | null;
+  duration: number | null;
+  maxAltitude: number | null;
+  aosAzimuth: number | null;
+  losAzimuth: number | null;
+};
+
+export type CaptureCompletedPayload = {
+  id: number;
+  filename: string;
+  triggerReason: CaptureReason;
+  objectName: string | null;
+  azimuth: number | null;
+  altitude: number | null;
+  fileSize: number;
+  timestamp: string;
+};
+
+export type LoraMessagePayload = {
+  id: number;
+  direction: LoraDirection;
+  message: string;
+  rssi: number | null;
+  snr: number | null;
+  timestamp: string;
+};
+
+export type MqttStatusPayload = {
+  connected: boolean;
+};
+
+export type ServoCommandPayload = {
+  azimuth: number;
+  altitude: number;
+  speed: ServoSpeed;
+  source: ServoSource;
+};
+
+export type ManualServoPayload = {
+  azimuth: number;
+  altitude: number;
+};
+
+export type WsErrorPayload = {
+  message: string;
+  code: string;
+  status: number;
+  timestamp: string;
+};
+
+export type LiveSnapshotPayload = {
+  celestial: CelestialUpdatePayload | null;
+  hardware: HardwareStatus | null;
+  target: TrackTarget | null;
+  mqttConnected: boolean;
+  serverTime: string;
+};
+
+export type ServerToClientEvents = {
+  snapshot: (payload: LiveSnapshotPayload) => void;
+  "celestial:update": (payload: CelestialUpdatePayload) => void;
+  "hardware:update": (payload: HardwareStatus) => void;
+  "pass:alert": (payload: PassAlertPayload) => void;
+  "capture:completed": (payload: CaptureCompletedPayload) => void;
+  "lora:message": (payload: LoraMessagePayload) => void;
+  "mqtt:status": (payload: MqttStatusPayload) => void;
+  "target:changed": (payload: TrackTarget) => void;
+  "servo:command": (payload: ServoCommandPayload) => void;
+  error: (payload: WsErrorPayload) => void;
+};
+
+export type ClientToServerEvents = {
+  ping: () => void;
+  "servo:manual": (payload: ManualServoPayload) => void;
+};
