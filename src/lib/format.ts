@@ -1,22 +1,51 @@
-const WIB_TIME_ZONE = "Asia/Jakarta";
+const TIME_ZONE = "Asia/Jakarta";
 export const DASH = "—";
+export const   WIB_LABEL = "WIB";
 
 const MINUS = "\u2212";
-const GROUP_SEPARATOR = "\u202F";
+const NNBSP = "\u202F";
 
-const decimalFormatterss = new Map<number, Intl.NumberFormat>();
+const numberFormats = new Map<number, Intl.NumberFormat>();
+const dateFormats = new Map<string, Intl.DateTimeFormat>();
 
-function decimalFormatter(digits: number): Intl.NumberFormat {
-  const cached = decimalFormatterss.get(digits);
-  if (cached) return cached;
+function number(digits: number): Intl.NumberFormat {
+    let format = numberFormats.get(digits);
 
-  const formatter = new Intl.NumberFormat("en-US", {
-    minimumFractionDigits: digits,
-    maximumFractionDigits: digits,
-  });
-  decimalFormatterss.set(digits, formatter);
-  return formatter;
+    if(format === undefined) {
+        format = new Intl.NumberFormat("en-US", {
+            minimumFractionDigits: digits,
+            maximumFractionDigits: digits,
+        });
+        numberFormats.set(digits, format);
+    }
+
+    return format;
 }
+
+function dateFormat( locale: string, options: Intl.DateTimeFormatOptions): Intl.DateTimeFormat {
+    const key = `${locale}-${JSON.stringify(options)}`;
+    let format = dateFormats.get(key);
+
+    if(format === undefined) {
+
+        format = new Intl.DateTimeFormat(locale, {
+            timeZone: TIME_ZONE,
+            hourCycle: "h23",
+            ...options,
+        });
+        dateFormats.set(key, format);
+
+        
+    }
+    return format;  
+}
+
+function partOf(parts: Intl.DateTimeFormatPart[], type:  Intl.DateTimeFormatPartTypes): string | undefined {
+    return parts.find((part) => part.type === type)?.value;
+}
+
+
+
 
 function roundTo(value: number, digits: number): number {
   const factor = 10 ** digits;
@@ -25,9 +54,9 @@ function roundTo(value: number, digits: number): number {
 }
 
 function formatDecimal(value: number, digits: number): string {
-  return decimalFormatter(digits)
+  return number(digits)
     .format(roundTo(value, digits))
-    .replaceAll(",", GROUP_SEPARATOR);
+    .replaceAll(",", NNBSP);
 }
 
 function pad2(value: number): string {
@@ -36,21 +65,18 @@ function pad2(value: number): string {
 
 export function toFiniteNumber(value: unknown): number | null {
     if(typeof value === "number") return Number.isFinite(value) ? value : null;
-    if(typeof value === "string" && value.trim() !== "")  {
-        const parsed = Number(value);
-        return Number.isFinite(parsed) ? parsed : null;
-    }
-    return null;
+    if (typeof value !== "string" || value.trim() === "") return null;
+
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
 }
 
-function toEpochMs(value: number |  string | null | undefined): number | null {
+function toEpochMs(value: unknown): number | null {
     if(typeof value === "number") return Number.isFinite(value) ? value : null;
-    if(typeof value === "string") {
-        const parsed = Number(value);
-        return Number.isNaN(parsed) ?  null : parsed;
-    }
+    if(typeof value !== "string" || value.trim() === "") return null;
 
-    return null;
+    const parsed = Date.parse(value);
+    return Number.isFinite(parsed) ? parsed : null;
 
 
 }

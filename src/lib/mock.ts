@@ -10,7 +10,6 @@ import type {
   PassInfo,
   TrackTarget,
 } from "@/types/celestial";
-import { degrees } from "framer-motion";
 
 const DEG = Math.PI / 180;
 const DAY_MS = 86_400_000;
@@ -228,3 +227,155 @@ function horizontalOf(dec: number, hourAngle: number, lat: number, hourAngleRate
         hourAngleRate!,
     };
 }
+
+function solarHours(atMs: number): number {
+    return (atMs / DAY_MS) % 24 + OBSERVER.longitude / DEGREES_PER_HOUR;
+}
+
+function hourAngleOf(ep: Ephemeris, sunRa: number, atMs: number): number {
+    return (DEGREES_PER_HOUR * (solarHours(atMs) - 12) + (sunRa - ep.ra))
+}
+
+function hourAngleRateOf(ep: Ephemeris): number {
+    return DEGREES_PER_HOUR / SECONDS_PER_HOUR - ep.raRate;
+}
+
+function distanceOf(
+    key: string,
+    kind: CelestialType,
+    days: number,
+    sunL: number,
+) : number | null {
+    if(kind === "star") return null;
+    if(kind === "sun") return AU_KM;
+    if(kind === "moon") {
+        return (MOON_MEAN_DISTANCE_KM - MOON_DISTANCE_SWING_KM * Math.cos(2 * Math.PI * days) / ANOMALISTIC_MONTH);
+    }
+
+    if(kind === "satellite") return ISS_MEAN_ALTITUDE_KM + 12 + Math.sin((2 * Math.PI * days) / 0.3);
+
+    const semiMajor = SEMI_MAJOR_AU[key] ?? 1;
+    const lamda = 360 * (days / (SIDEREAL_DAYS[key] ?? TROPICAL_YEAR) + unitOf(key, "lamda"));
+
+    const elongation = (lamda - sunL + 100) * DEG;
+
+    return AU_KM * Math.sqrt(
+        1 + semiMajor * semiMajor - 2 * semiMajor * Math.cos(elongation)
+    )
+}
+
+function toTarget(key: string): TrackTarget {
+    return {type: contentOf(key)?.kind ?? "planet", "id": key};
+}
+
+
+function separationFromSun(sunAlt: number, sunAz: number, alt: number, az: number): number {
+    return (
+        Math.acos(
+            clamp(
+                Math.sin(sunAlt * DEG) * Math.sin(alt * DEG) +
+                    Math.cos(sunAlt * DEG) * Math.cos(alt * DEG) * Math.cos((sunAz - az) * DEG),
+                -1,
+                1,
+            ),
+             
+        ) / DEG
+    );
+}
+
+
+export function mockCelestialPosition(target: TrackTarget, atMs: number): CelestialPosition {
+    const key = target.id.trim().toLowerCase();
+    const content = contentOf(key);
+    const kind = content?.kind ?? "satellite";
+    const days = atMs / DAY_MS;
+
+    const sun = ephemerisOf("sun", "sun", days);
+    const sunHorizontal = horizontalOf(
+        sun.dec,
+        DEGREES_PER_HOUR * (solarHours(atMs) - 12),
+        OBSERVER.latitude,
+        DEGREES_PER_HOUR / SECONDS_PER_HOUR - sun.raRate,
+    )
+
+    const body = ephemerisOf(key, kind, days);
+    const {alt, az, altRate, azRate} = horizontalOf(
+        body.dec,
+        hourAngleOf(body, sun.ra, atMs),
+        OBSERVER.latitude,
+        hourAngleRateOf(body),
+    );
+
+
+    const distanceKm  = distanceOf(key, kind, days, (360 * (days  - MARCH_EQUINOX_DAY)) / TROPICAL_YEAR);
+
+    return {
+        name: content?.label ?? target.id,
+        type: kind,
+        azimuth: az,
+        altitude: alt,
+        distanceKm: distanceKm === null ? null : round(distanceKm, 1),
+        distanceAu: distanceKm === null ? null : round(distanceKm / AU_KM, 6),
+        azimuthRate: azRate,
+        altitudeRate: altRate,
+        angularRate:
+          azRate === null || altRate === null ? null : Math.hypot(azRate, altRate),
+        isVisible: alt > 0,
+        illuminated: 
+            kind === "satellite"
+                ? separationFromSun(sunHorizontal.alt, sunHorizontal.az, alt, az) < 180 - EARTH_SHADOW_RADIUS
+                : null,
+        servoAzimuth: Math.round((az / 360) * 180),
+        servoAltitude: Math.round(clamp(alt, -90, 90) + 90),
+        timestamp: new Date(atMs).toISOString(),
+        timestampMs: atMs,
+        origin: "mock",
+    }
+
+}
+
+
+export function mockPassInfo(target: TrackTarget, nowMs: number): PassInfo | null {
+    const key = target.id.trim().toLowerCase();
+    const content = contentOf(key);
+    if(content?.kind !=="satellite" && content?.kind !== "moon") return null;
+
+    const days = nowMs / DAY_MS;
+    const sun = ephemerisOf("sun", "sun", days);
+    const body = ephemerisOf(key, content.kind, days);
+    const latitude = OBSERVER.latitude;
+
+    const cosThreshold = (Math.sin(PASS_MIN_ALTITUDE * DEG) - Math.sin(latitude * DEG) * Math.sin(body.dec * DEG)) / (Math.cos(latitude * DEG) * Math.cos(body.dec * DEG));
+    if(Math.abs(cosThreshold) > 1) return null;
+
+    const half = Math.acos(cosThreshold) / DEG;
+    const current = hourAngleOf(body, sun.ra, nowMs);
+    const hoursPerTurn = 360 / (DEGREES_PER_HOUR / SECONDS_PER_HOUR - body.raRate);
+    const turn = Math.ceil((current + half) / 360);
+    const toRise = (turn * 360 - half - current) / DEGREES_PER_HOUR;
+
+    const aosMs = nowMs + toRise * HOUR_MS;
+    const losMs = nowMs + (toRise + (2 * half  * hoursPerTurn) / 24) * HOUR_MS;
+
+    const aos = horizontalOf(body.dec, current + DEGREES_PER_HOUR * toRise, latitude, 0);
+    const los = horizontalOf(
+        body.dec,
+        current +  DEGREES_PER_HOUR * (toRise + (2 * half * hoursPerTurn) / 24),
+        latitude,
+        0
+    )
+
+
+    return {
+        name: content.label,
+        nextAos: new Date(aosMs).toISOString(),
+        nextLos: new Date(losMs).toISOString(),
+        durationSeconds: Math.round((losMs - aosMs) / 1_000),
+        maxAltitude: round(90 - Math.abs(latitude - body.dec), 1),
+        aosAzimuth: round(aos.az, 1),
+        losAzimuth: round(los.az, 1),
+    }
+}
+
+
+const SUN_CLEARANCE = 0.02;

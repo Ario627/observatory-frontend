@@ -168,9 +168,7 @@ export type SkySnapshot = {
   distanceKm: number | null;
   visible: boolean;
   ts: number;
-};
-
-
+}
 export type CelestialUpdatePayload = {
   name: string;
   type: CelestialType;

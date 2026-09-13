@@ -181,7 +181,6 @@ export const FEATURED = [
   "iss",
 ] as const satisfies readonly ObjectKey[];
 
-// Polaris sengaja di luar: dari lintang Semarang ia tidak pernah terbit.
 export const PILOT_STARS = [
   "sirius",
   "vega",

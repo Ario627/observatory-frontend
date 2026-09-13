@@ -3,21 +3,14 @@ import type {
   ServerToClientEvents,
 } from "@/types/celestial";
 
-export { EXTRAPOLATION_LIMIT_MS as STALE_AFTER_MS } from "@/lib/coordinates";
-
-const FALLBACK_API_BASE_URL = "http://localhost:3001/api";
-
-function positive(raw: string | undefined, fallback: number): number {
-  const parsed = Number(raw);
-
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
-}
+const API_FALLBACK = "http://localhost:3001/api";
+const timeoutEnv = Number(process.env.NEXT_PUBLIC_API_TIMEOUT_MS);
 
 export const ENV = {
   apiBaseUrl:
-    (process.env.NEXT_PUBLIC_API_BASE_URL ?? "").replace(/\/+$/, "") ||
-    FALLBACK_API_BASE_URL,
-  timeoutMs: positive(process.env.NEXT_PUBLIC_API_TIMEOUT_MS, 8_000),
+    (process.env.NEXT_PUBLIC_API_BASE_URL ?? "").trim().replace(/\/+$/, "") ||
+    API_FALLBACK,
+  timeoutMs: Number.isFinite(timeoutEnv) && timeoutEnv > 0 ? timeoutEnv : 8_000,
   mock: process.env.NEXT_PUBLIC_ENABLE_MOCK === "1",
 } as const;
 
@@ -27,21 +20,27 @@ export const POLL_MS = {
   hardware: 10_000,
 } as const;
 
-export const BACKOFF_MS = {
-  start: 1_000,
-  cap: 30_000,
-} as const;
+export type FeedKey = keyof typeof POLL_MS;
 
-export const MOTION_MS = {
+const BACKOFF_FIRST_MS = 1_000;
+const BACKOFF_CEILING_MS = 30_000;
+
+export const backoffDelay = (attempt: number): number =>
+  Math.min(BACKOFF_FIRST_MS * 2 ** Math.max(0, attempt), BACKOFF_CEILING_MS);
+
+export const MOTION = {
   fast: 150,
-  med: 300,
+  base: 300,
   slow: 600,
   tick: 200,
+  stagger: 80,
+  easing: [0.16, 1, 0.3, 1],
 } as const;
 
-export const STAGGER_MS = 80;
+export const SERVO_LOCKOUT_MS = 3_000;
 export const CAPTURE_PAGE_SIZE = 12;
 export const CATALOG_TTL_MS = 300_000;
+
 
 const SERVER_EVENTS = {
   snapshot: "snapshot",
@@ -66,5 +65,3 @@ export const WS = {
   server: SERVER_EVENTS,
   client: CLIENT_EVENTS,
 } as const;
-
-export type FeedKey = keyof typeof POLL_MS;
