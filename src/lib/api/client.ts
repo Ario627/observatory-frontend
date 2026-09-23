@@ -2,7 +2,6 @@ import axios, { type AxiosRequestConfig } from "axios";
 import { ENV } from "../constants";
 import { tokenStore } from "../token";
 import type { ApiErrorBody, ServerEnvelope } from "@/types/celestial";
-import error from "next/dist/api/error";
 
 export type FailureCode =
   | "cancelled"
@@ -41,7 +40,7 @@ export class ApiError extends Error {
       default:
         return (
           this.status != null &&
-          (this.status >= 50 || RETRYABLE_STATUS.has(this.status))
+          (this.status >= 500 || RETRYABLE_STATUS.has(this.status))
         );
     }
   }
@@ -133,9 +132,9 @@ type RequestOptions = Omit<
 function isEnvelope(value: unknown): value is ServerEnvelope<unknown> {
   if (typeof value !== "object" || value === null) return false;
 
-  const cadidate = value as Record<string, unknown>;
+  const candidate = value as Record<string, unknown>;
 
-  return cadidate.success === true && "data" in cadidate;
+  return candidate.success === true && "data" in candidate;
 }
 
 function unwrap<T>(payload: unknown): T {
@@ -148,7 +147,7 @@ function trace(
   status: number | null,
   startedAt: number,
 ): void {
-  if (process.env.NODE_ENV !== "production") return;
+  if (process.env.NODE_ENV === "production") return;
 
   const elapsed = Math.round(performance.now() - startedAt);
 
