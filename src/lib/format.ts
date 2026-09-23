@@ -88,7 +88,9 @@ function roundTo(value: number, digits: number): number {
 }
 
 function formatDecimal(value: number, digits: number): string {
-  return number(digits).format(roundTo(value, digits)).replaceAll(",", NNBSP);
+  return number(digits)
+    .format(roundTo(value, digits))
+    .replaceAll(",", GROUP_SEPARATOR);
 }
 
 function pad2(value: number): string {

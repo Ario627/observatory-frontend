@@ -17,6 +17,7 @@ export type PollingOptions<T> = {
   intervalMs: number;
   enabled?: boolean;
   delayMs?: number;
+  resetKey?: string;
   originOf?: (value: T) => DataOrigin;
 };
 
@@ -38,7 +39,8 @@ export function usePolling<T>(
   fetcher: (signal: AbortSignal) => Promise<T>,
   options: PollingOptions<T>,
 ): Feed<T> {
-  const { intervalMs, enabled = true, delayMs = 0, originOf } = options;
+  const { intervalMs, enabled = true, delayMs = 0, resetKey, originOf } = options;
+
 
   const [snapshot, setSnapshot] = useState<PollingSnapshot<T>>(() => ({
     data: null,
@@ -47,6 +49,20 @@ export function usePolling<T>(
     updatedAtMs: null,
     error: null,
   }));
+
+
+  const [seenKey, setSeenKey] = useState(resetKey);
+
+  if (seenKey !== resetKey) {
+    setSeenKey(resetKey);
+    setSnapshot((previous) => ({
+      ...previous,
+      data: null,
+      status: "loading",
+      updatedAtMs: null,
+      error: null,
+    }));
+  }
 
   const wakeRef = useRef<() => void>(() => {});
 
@@ -175,7 +191,7 @@ export function usePolling<T>(
 
       controller?.abort();
     };
-  }, [enabled, intervalMs, delayMs]);
+  }, [enabled, intervalMs, delayMs, resetKey]);
 
   const refresh = useCallback((): void => {
     wakeRef.current();
