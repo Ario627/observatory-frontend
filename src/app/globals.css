@@ -21,6 +21,8 @@
   --color-hairline: rgba(255, 255, 255, 0.08);
   --color-hairline-strong: rgba(255, 255, 255, 0.2);
   --color-hairline-cyan: rgba(111, 229, 218, 0.35);
+  --color-hairline-soft: rgba(255, 255, 255, 0.06);
+  --color-chip: rgba(162, 187, 208, 0.08);
 
   --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
   --font-mono-data: var(--font-grotesk), ui-monospace, monospace;
@@ -74,6 +76,10 @@
 
 @utility glow-soft {
   box-shadow: 0 0 24px rgba(111, 229, 218, 0.35);
+}
+
+@utility glow-strong {
+  box-shadow: 0 0 44px rgba(111, 229, 218, 0.5);
 }
 
 @utility mono-num {

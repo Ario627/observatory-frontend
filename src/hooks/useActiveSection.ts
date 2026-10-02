@@ -64,7 +64,7 @@ export function useActiveSection(order: readonly string[]): ActiveSection {
     const apply = useEffectEvent((entries: IntersectionObserverEntry[]): void => {
         for(const entry of entries) {
             const id = owners.current.get(entry.target)
-            if (id === undefined) return ;
+            if (id === undefined) continue ;
 
             const area = entry.isIntersecting ? entry.intersectionRect.height : 0
 
