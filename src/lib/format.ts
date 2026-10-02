@@ -234,3 +234,29 @@ export function formatAge(updatedAtMs: number | null, nowMs: number): string {
 
   return hours < 24 ? `${hours}h` : `${Math.floor(hours / 24)}d`;
 }
+
+export function formatCountdown(totalSeconds: number): string {
+  const safe = Math.max(0, Math.round(totalSeconds));
+  const hours = Math.floor(safe / SECONDS_PER_HOUR);
+  const minutes = Math.floor((safe % SECONDS_PER_HOUR) / SECONDS_PER_MINUTE);
+  const seconds = safe % SECONDS_PER_MINUTE;
+
+  return hours > 0
+    ? `${pad2(hours)}:${pad2(minutes)}:${pad2(seconds)}`
+    : `${pad2(minutes)}:${pad2(seconds)}`;
+}
+
+export function formatDuration(totalSeconds: number | null): string {
+  const safe = toFiniteNumber(totalSeconds);
+
+  if (safe === null || safe < 0) return DASH;
+
+  const total = Math.round(safe);
+  const minutes = Math.floor(total / SECONDS_PER_MINUTE);
+  const seconds = total % SECONDS_PER_MINUTE;
+
+  if (minutes === 0) return `${seconds} dtk`;
+  if (seconds === 0) return `${minutes} mnt`;
+
+  return `${minutes} mnt ${seconds} dtk`;
+}

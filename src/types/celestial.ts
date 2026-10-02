@@ -166,9 +166,10 @@ export type SkySnapshot = {
   azRate: number | null;
   altRate: number | null;
   distanceKm: number | null;
+  illuminated: boolean | null;
   visible: boolean;
   ts: number;
-}
+};
 export type CelestialUpdatePayload = {
   name: string;
   type: CelestialType;

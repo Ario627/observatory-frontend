@@ -1,4 +1,4 @@
-import type { ComponentProps, ComponentType, ReactNode } from "react";
+import type { ComponentProps, ReactNode } from "react";
 import { cn } from "@/lib/cn";
 import { Hairline } from "./Hairline";
 import { Reveal } from "./Reveal";
@@ -16,6 +16,8 @@ export type SectionShellProps = Omit<
   divider?: boolean;
   reveal?: boolean;
   height?: "auto" | "screen";
+  level?: 1 | 2;
+  display?: boolean;
   children: ReactNode;
 };
 
@@ -31,12 +33,20 @@ const LEAD_ALIGN: Record<"start" | "center", string> = {
 
 const HEIGHT: Record<"auto" | "screen", string> = {
   auto: "",
-  screen: "min-h-[88svh]",
+  screen: "flex min-h-[88svh] flex-col justify-center",
 };
 
-const HairlineLine = Hairline as unknown as ComponentType<{
-  className?: string;
-}>;
+const HEADLINE: Record<"layer" | "display", string> = {
+  layer:
+    "mt-5 max-w-[54ch] text-balance text-[clamp(1.75rem,4vw,3rem)] font-bold leading-[1.08] tracking-[-0.015em] text-ice",
+  display:
+    "mt-6 text-balance text-[clamp(2.5rem,5.5vw,4rem)] font-extrabold leading-[1.02] tracking-[0.02em] text-ice",
+};
+
+const LEAD: Record<"layer" | "display", string> = {
+  layer: "text-[15px] sm:text-base",
+  display: "text-[15px] sm:text-[17px]",
+};
 
 export function SectionShell({
   id,
@@ -48,11 +58,16 @@ export function SectionShell({
   divider = true,
   reveal = true,
   height = "auto",
+  level = 2,
+  display = false,
   className,
   children,
   ...rest
 }: SectionShellProps) {
   const layer = String(index).padStart(2, "0");
+  const titleId = `${id}-title`;
+  const Heading = level === 1 ? "h1" : "h2";
+  const variant = display ? "display" : "layer";
 
   const enter = (node: ReactNode, delayMs: number) =>
     reveal ? <Reveal delayMs={delayMs}>{node}</Reveal> : node;
@@ -61,13 +76,14 @@ export function SectionShell({
     <section
       {...rest}
       id={id}
+      aria-labelledby={titleId}
       className={cn(
         "relative scroll-mt-24 px-4 py-24 sm:px-6 sm:py-32",
         HEIGHT[height],
         className,
       )}
     >
-      {divider ? <HairlineLine className="absolute inset-x-0 top-0" /> : null}
+      {divider ? <Hairline className="absolute inset-x-0 top-0" /> : null}
 
       <div className={cn("flex flex-col", ALIGN[align])}>
         {enter(
@@ -78,9 +94,9 @@ export function SectionShell({
         )}
 
         {enter(
-          <h2 className="mt-5 max-w-[54ch] text-balance text-[clamp(1.75rem,4vw,3rem)] font-bold leading-[1.08] tracking-[-0.015em] text-ice">
+          <Heading id={titleId} className={HEADLINE[variant]}>
             {headline}
-          </h2>,
+          </Heading>,
           80,
         )}
 
@@ -89,7 +105,8 @@ export function SectionShell({
           : enter(
               <p
                 className={cn(
-                  "mt-5 max-w-[62ch] text-pretty text-[15px] leading-relaxed text-ice-dim sm:text-base",
+                  "mt-5 max-w-[62ch] text-pretty leading-relaxed text-ice-dim",
+                  LEAD[variant],
                   LEAD_ALIGN[align],
                 )}
               >

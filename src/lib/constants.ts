@@ -41,7 +41,6 @@ export const SERVO_LOCKOUT_MS = 3_000;
 export const CAPTURE_PAGE_SIZE = 12;
 export const CATALOG_TTL_MS = 300_000;
 
-
 const SERVER_EVENTS = {
   snapshot: "snapshot",
   celestial: "celestial:update",
@@ -65,3 +64,21 @@ export const WS = {
   server: SERVER_EVENTS,
   client: CLIENT_EVENTS,
 } as const;
+
+type SectionSpec = {
+  readonly id: string;
+  readonly label: string;
+  readonly altitudeM: number | null;
+};
+
+export const SECTIONS = [
+  { id: "hero", label: "Stasiun tanah", altitudeM: 0 },
+  { id: "sky", label: "Langit sekarang", altitudeM: 10_000 },
+  { id: "satellite", label: "Satelit & pass", altitudeM: 400_000 },
+  { id: "station", label: "Stasiun", altitudeM: 1_500 },
+  { id: "gallery", label: "Galeri", altitudeM: null },
+] as const satisfies readonly SectionSpec[];
+
+export const SECTION_ORDER: readonly string[] = SECTIONS.map(
+  (section) => section.id,
+);

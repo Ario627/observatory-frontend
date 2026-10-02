@@ -33,6 +33,7 @@ function toSnapshot(
     azRate: position.azimuthRate,
     altRate: position.altitudeRate,
     distanceKm: position.distanceKm,
+    illuminated: position.illuminated,
     visible: position.isVisible,
     ts: position.timestampMs,
   };

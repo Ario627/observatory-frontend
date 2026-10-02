@@ -1,7 +1,10 @@
-import type { CelestialType } from "@/types/celestial";
+import type {
+  CelestialType,
+  ObjectsCatalog,
+  TrackTarget,
+} from "@/types/celestial";
 
 type Entry = { label: string; note: string };
-
 
 const BY_KIND = {
   sun: {
@@ -124,7 +127,6 @@ const BY_KIND = {
   },
 } as const satisfies Record<CelestialType, Record<string, Entry>>;
 
-
 export type ObjectKey = {
   [K in CelestialType]: keyof (typeof BY_KIND)[K];
 }[CelestialType];
@@ -189,3 +191,50 @@ export const PILOT_STARS = [
   "capella",
   "altair",
 ] as const satisfies readonly ObjectKey[];
+
+export type SkyTarget = {
+  readonly id: string;
+  readonly label: string;
+  readonly target: TrackTarget;
+};
+
+const SKY_IDS: readonly string[] = [
+  ...new Set<string>([...FEATURED, ...PILOT_STARS]),
+];
+
+function gatewayTypeOf(kind: CelestialType): TrackTarget["type"] {
+  return kind === "satellite" ? "iss" : kind;
+}
+
+function listedIn(
+  catalog: ObjectsCatalog,
+  id: string,
+  kind: CelestialType,
+): boolean {
+  if (kind === "satellite") {
+    return catalog.satellites.some(
+      (entry) => entry.name.trim().toLowerCase() === id,
+    );
+  }
+
+  if (kind === "star") return catalog.stars.includes(id);
+
+  return catalog.planets.includes(id);
+}
+
+export function skyTargetsOf(catalog: ObjectsCatalog | null): SkyTarget[] {
+  return SKY_IDS.flatMap((id) => {
+    const kind = kindOf(id);
+
+    if (kind === null) return [];
+    if (catalog !== null && !listedIn(catalog, id, kind)) return [];
+
+    return [
+      {
+        id,
+        label: contentOf(id)?.label ?? id,
+        target: { type: gatewayTypeOf(kind), id },
+      },
+    ];
+  });
+}
